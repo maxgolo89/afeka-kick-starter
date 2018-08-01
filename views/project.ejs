@@ -1,0 +1,35 @@
+<div class="row" style="display: flex; flex-wrap: wrap;">
+    <div class="col-lg-12">
+        <div class="jumbotron" style="background-image: url('<%= project.images[0]%>')">
+            <% if(auth_lvl && auth_lvl == 3) {%>
+            <p><a class="btn btn-primary btn-lg" href="#" role="button" onclick="donate_form('<%= project._id.toString() %>');">Donate</a></p>
+            <% }%>
+        </div>
+        <div class="row">
+            <div class="col-lg-10">
+                <h1><%= project.name %></h1>
+                <h2>Description</h2>
+                <p><%= project.description %></p>
+            </div>
+        </div>
+        <hr>
+        <div class="row" style="display: flex; flex-wrap: wrap;">
+            <div class="col-lg-12">
+                <div class="thumbnail">
+                    <iframe width="100%" height="315" src="<%= project.video %>" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="row row-eq-height" style="display: flex; flex-wrap: wrap;">
+            <% project.images.forEach(function(image) { %>
+            <div class="col-md-4 col-sm-6">
+                <div class="thumbnail">
+                    <img src="<%= image %>" />
+                </div>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Afeka KickStarter</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+            integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+            crossorigin="anonymous"></script>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+          crossorigin="anonymous">
+    <link href="stylesheets/style.css" rel="stylesheet"/>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+    <script src="javascripts/main.js"></script>
+</head>
+<body>
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="/">Afeka KickStarter</a>
+        </div>
+        <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li id="login"><a href="#" onclick="login_form();">Login</a></li>
+                <li id="signup"><a href="#" onclick="user_create_form();">Sign Up</a></li>
+                <li id="logout"><a href="#" onclick="logout();">Logout</a></li>
+                <li id="username"><a href="#"></a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-left">
+                <li id="project"><a href="#" onclick="projects();">Projects</a></li>
+                <li id="kickedout"><a href="#" onclick="kickedoutprojects();">Kicked Out</a></li>
+                <li id="user_list"><a href="#" onclick="userlist();">Users</a></li>
+                <li id="user_list"><a href="#" onclick="project_register_form();">New Project</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,43 @@
+<div class="row">
+    <div class="col-lg-8 col-lg-offset-2">
+        <form class="form-horizontal">
+            <div class="form-group">
+                <label for="username" class="col-sm-2 control-label">Username</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" id="username_tb" placeholder="Username">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password" class="col-sm-2 control-label">Password</label>
+                <div class="col-sm-10">
+                    <input type="password" class="form-control" id="password_tb" placeholder="Password">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password" class="col-sm-2 control-label">Password</label>
+                <div class="col-sm-10">
+                    <input type="password" class="form-control" id="password_c_tb" placeholder="Password">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="usertype" class="col-sm-2 control-label">User Type</label>
+                <div class="form-group" id="usertype">
+                    <label class="radio-inline">
+                        <input type="radio" name="type" id="inlineRadio1" value="2"> Entrepreneur
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio" name="type" id="inlineRadio2" value="3"> Donor
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                    <a class="btn btn-default" href="#" role="button" onclick="user_create();">Submit</a>
+                </div>
+            </div>
+            <% if(err) { %>
+            <p style="color: red"><%= err %></p>
+            <% } %>
+        </form>
+    </div>
+</div>
