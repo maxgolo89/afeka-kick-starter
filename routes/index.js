@@ -3,8 +3,30 @@ var express                 = require('express');
 var ejs                     = require("ejs");
 var router                  = express.Router();
 var bl                      = require(path.join(__basedir, "business_logic/bl_management"));
+var logger                  = require(path.join(__basedir, "common/logger/logger"));
+
+var TAG = "ROUTER";
 
 var bl_inst = bl;
+
+function responseDispatcher(req, res, template, err, msg, params) {
+    ejs.renderFile(path.join(__basedir, template), {err: err ,msg: msg, params: params}, function(err, body) {
+        if(err) {
+            logger.err(TAG, "Failed to render: " + template);
+            logger.err(TAG, err);
+        } else {
+            logger.info(TAG , "Delivering: " + template);
+            var response = {
+                err: null,
+                auth_lvl: req.session.auth_lvl,
+                username: req.session.username,
+                header: "Afeka KickStarter",
+                data: body
+            };
+            res.send(response);
+        }
+    });
+}
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -12,406 +34,479 @@ router.get('/', function(req, res, next) {
 });
 
 /** ******************************************************************************************
- *          PROJECT GET
+ *          PROJECTS ROUTES
  *  *******************************************************************************************/
 /* GET home from ajax request */
 router.get("/projects", function(req, res) {
-  bl_inst.getProjectLogicInterface().getAllProjects(function(err, projects) {
+  bl_inst.getProjectLogicInterface().getAllActiveProjects(function(err, projects) {
       if(err) {
-          ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {msg: "Something went wrong"}, function(e, body) {
-              var response = {
-                  err: null,
-                  auth_lvl: req.session.auth_lvl,
-                  username: req.session.username,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
-              res.send(response);
-          });
-      } else {
-        ejs.renderFile(path.join(__basedir, "views/projects.ejs"), {err: null, projects: projects}, function(e, body) {
-            var response = {
-                err: null,
-                auth_lvl: req.session.auth_lvl,
-                username: req.session.username,
-                header: "Afeka KickStarter",
-                data: body
-            };
-            res.send(response);
-        });
+          logger.err(TAG, err);
 
+          var template  = "views/generic-message.ejs";
+          var err       = null;
+          var msg       = "Something went wrong";
+          var params    = null;
+
+          responseDispatcher(req, res, template, err, msg, params);
+      } else {
+          var template  = "views/projects.ejs";
+          var err       = null;
+          var msg       = null;
+          var params    = {projects: projects};
+
+          responseDispatcher(req, res, template, err, msg, params);
       }
   });
+});
+
+/* GET home from ajax request */
+router.get("/projects/my", function(req, res) {
+    if(!bl_inst.getUserLogicInterface().isEntrepreneur(req.session.auth_lvl)) {
+        logger.err(TAG, "Unauthorized attempt to GET my projects");
+
+        var template  = "views/generic-message.ejs";
+        var err       = null;
+        var msg       = "Unauthorized";
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    } else {
+        bl_inst.getUserLogicInterface().getUserByUsername(req.session.username, function(err, user) {
+            if(err) {
+                logger.err(TAG, err);
+
+                var template  = "views/generic-message.ejs";
+                var err       = null;
+                var msg       = "Something went wrong";
+                var params    = null;
+
+                responseDispatcher(req, res, template, err, msg, params);
+            } else {
+                bl_inst.getProjectLogicInterface().getProjectsByOwner(user._id, function(err, projects) {
+                    if(err) {
+                        logger.err(TAG, err);
+
+                        var template  = "views/generic-message.ejs";
+                        var err       = null;
+                        var msg       = "Something went wrong";
+                        var params    = null;
+
+                        responseDispatcher(req, res, template, err, msg, params);
+                    } else {
+                        var template  = "views/projects.ejs";
+                        var err       = null;
+                        var msg       = null;
+                        var params    = {projects: projects};
+
+                        responseDispatcher(req, res, template, err, msg, params);
+                    }
+                });
+            }
+        });
+    }
+});
+
+
+/* GET register project */
+router.get("/projects/create", function(req, res) {
+    if(!bl_inst.getUserLogicInterface().isEntrepreneur(req.session.auth_lvl)) {
+        logger.err(TAG, "Unauthorized attempt to GET project registration form");
+
+        var template  = "views/generic-message.ejs";
+        var err       = null;
+        var msg       = "Unauthorized";
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    } else {
+        var template  = "views/project-create-form.ejs";
+        var err       = null;
+        var msg       = null;
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    }
+});
+
+/* GET kicked out project */
+router.get("/projects/kickedout", function(req, res) {
+    bl_inst.getProjectLogicInterface().getAllKickedOutProject(function(err, projects) {
+        if(err) {
+            logger.err(TAG, err);
+
+            var template  = "views/generic-message.ejs";
+            var err       = null;
+            var msg       = "Something went wrong";
+            var params    = null;
+
+            responseDispatcher(req, res, template, err, msg, params);
+        } else {
+            var template  = "views/projects.ejs";
+            var err       = null;
+            var msg       = null;
+            var params    = {projects: projects};
+
+            responseDispatcher(req, res, template, err, msg, params);
+        }
+    });
+});
+
+/* GET register project */
+router.get("/projects/create", function(req, res) {
+    if(!bl_inst.isEntrepreneur(req.session.auth_lvl)) {
+        logger.err(TAG, "Unauthorized attempt to GET project registration form");
+
+        var template  = "views/generic-message.ejs";
+        var err       = null;
+        var msg       = "Unauthorized";
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    } else {
+        var template  = "views/project-create-form.ejs";
+        var err       = null;
+        var msg       = null;
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    }
 });
 
 /* GET project */
 router.get("/projects/:id", function(req, res,) {
   bl_inst.getProjectLogicInterface().getProjectById(req.params.id, function(err, project) {
       if(err) {
-          ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {msg: "Something went wrong"}, function(e, body) {
-              var response = {
-                  err: null,
-                  auth_lvl: req.session.auth_lvl,
-                  username: req.session.username,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
+          logger.err(TAG, err);
 
-              res.send(JSON.stringify(response));
-          });
+          var template  = "views/generic-message.ejs";
+          var err       = null;
+          var msg       = "Something went wrong";
+          var params    = null;
+
+          responseDispatcher(req, res, template, err, msg, params);
       } else {
-          ejs.renderFile(path.join(__basedir, "views/project.ejs"), {project: project, auth_lvl: req.session.auth_lvl}, function(e, body) {
-              var response = {
-                  err: null,
-                  auth_lvl: req.session.auth_lvl,
-                  username: req.session.username,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
+          var template  = "views/project.ejs";
+          var err       = null;
+          var msg       = null;
+          var params    = {project: project, auth_lvl: req.session.auth_lvl, uid: req.session.uid};
 
-              res.send(JSON.stringify(response));
-          });
-
+          responseDispatcher(req, res, template, err, msg, params);
       }
   });
 });
 
-/* GET kicked out project */
-router.get("/kickedoutprojects", function(req, res) {
-    bl_inst.getProjectLogicInterface().getAllKickedOutProject(function(err, projects) {
-        if(err)
-            ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {msg: "Something went wrong"}, function(e, body) {
-                var response = {
-                    err: null,
-                    auth_lvl: req.session.auth_lvl,
-                    username: req.session.username,
-                    header: "Afeka KickStarter",
-                    data: body
-                };
+/* GET donate project */
+router.get("/projects/:id/donate", function(req, res) {
+    if(!bl_inst.getUserLogicInterface().isDonor(req.session.auth_lvl)) {
+        logger.err(TAG, "Unauthorized attempt to GET project registration form");
 
-                res.send(JSON.stringify(response));
-            });
-        else {
-            ejs.renderFile(path.join(__basedir, "views/projects.ejs"), {projects: projects}, function(e, body) {
-                var response = {
-                    err: null,
-                    auth_lvl: req.session.auth_lvl,
-                    username: req.session.username,
-                    header: "Afeka KickStarter",
-                    data: body
-                };
-                res.send(response);
-            });
-        }
-    });
+        var template  = "views/generic-message.ejs";
+        var err       = null;
+        var msg       = "Unauthorized";
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    } else {
+        var template  = "views/donation-form.ejs";
+        var err       = null;
+        var msg       = null;
+        var params    = {projectId: req.params.id};
+
+        responseDispatcher(req, res, template, err, msg, params);
+    }
 });
 
-/** ******************************************************************************************
- *          PROJECT CREATE GET POST
- *  *******************************************************************************************/
-/* GET register project */
-router.get("/create/project", function(req, res) {
-    if(req.session.auth_lvl == 2) {
-        ejs.renderFile(path.join(__basedir, "views/project-create-form.ejs"), {err: null}, function(e, body) {
-            var response = {
-                err: null,
-                auth_lvl: req.session.auth_lvl,
-                username: req.session.username,
-                header: "Afeka Kicked Out Projects",
-                data: body
-            };
-            res.send(response);
-        });
-    } else {
-        ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Unauthorized"}, function(e, body) {
-            var response = {
-                err: null,
-                auth_lvl: req.session.auth_lvl,
-                username: req.session.username,
-                header: "Afeka KickStarter",
-                data: body
-            };
+/* GET edit project form */
+router.get("/projects/:id/edit", function(req, res) {
+    if(!bl_inst.getUserLogicInterface().isEntrepreneur(req.session.auth_lvl)) {
+        logger.err(TAG, "Unauthorized attempt to GET project registration form");
 
-            res.send(JSON.stringify(response));
+        var template  = "views/generic-message.ejs";
+        var err       = null;
+        var msg       = "Unauthorized";
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    } else {
+        bl_inst.getProjectLogicInterface().getProjectById(req.params.id, function(err, project) {
+            if(err) {
+                logger.err(TAG, err);
+
+                var template  = "views/generic-message.ejs";
+                var err       = null;
+                var msg       = "Something went wrong";
+                var params    = null;
+            } else {
+                var template  = "views/project-edit-form.ejs";
+                var err       = null;
+                var msg       = null;
+                var params    = {project: project, auth_lvl: req.session.auth_lvl};
+
+
+            }
+            responseDispatcher(req, res, template, err, msg, params);
+        });
+    }
+});
+
+/* POST edit project form */
+router.post("/projects/:id/edit", function(req, res) {
+    if(!bl_inst.getUserLogicInterface().isEntrepreneur(req.session.auth_lvl)) {
+        logger.err(TAG, "Unauthorized attempt to GET project registration form");
+
+        var template  = "views/generic-message.ejs";
+        var err       = null;
+        var msg       = "Unauthorized";
+        var params    = null;
+
+        responseDispatcher(req, res, template, err, msg, params);
+    } else {
+        bl_inst.getProjectLogicInterface().updateProject(req.body.pid, req.body.name, req.body.description, req.body.images, req.body.video, null, null, req.body.bankAccount, function(err, updatedProject) {
+           if(err) {
+               logger.err(TAG, err);
+
+               var template  = "views/generic-message.ejs";
+               var err       = null;
+               var msg       = "Something went wrong";
+               var params    = null;
+           } else {
+               var template  = "views/project.ejs";
+               var err       = null;
+               var msg       = null;
+               var params    = {project: updatedProject, auth_lvl: req.session.auth_lvl, uid: req.session.uid};
+           }
+            responseDispatcher(req, res, template, err, msg, params);
         });
     }
 });
 
 /* POST register project */
-router.post("/create/project", function(req, res) {
+router.post("/projects/create", function(req, res) {
     bl_inst.addProject(req.body.name, req.body.description, req.body.images, req.body.video,
         req.body.targetSum, req.body.targetDate, req.session.username, req.body.bankAccount, function(err, projId) {
             if(err) {
-                ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Something went wrong"}, function(e, body) {
-                    var response = {
-                        err: null,
-                        auth_lvl: req.session.auth_lvl,
-                        username: req.session.username,
-                        header: "Afeka KickStarter",
-                        data: body
-                    };
+                logger.err(TAG, err);
 
-                    res.send(JSON.stringify(response));
-                });
+                var template  = "views/generic-message.ejs";
+                var err       = null;
+                var msg       = "Something went wrong";
+                var params    = null;
+
+                responseDispatcher(req, res, template, err, msg, params);
             }
             else {
-                var response = {
-                    err: null,
-                    type: "project_added_view",
-                    auth_lvl: req.session.auth_lvl,
-                    username: req.session.username,
-                    data: {projectId: projId}
-                };
+                bl_inst.getProjectLogicInterface().getProjectById(projId, function(i_err, project) {
+                    if(i_err) {
+                        logger.err(TAG, i_err);
 
-                res.send(JSON.stringify(response));
+                        var template  = "views/generic-message.ejs";
+                        var err       = null;
+                        var msg       = "Project Registered Successfully!";
+                        var params    = null;
+
+
+                    } else {
+                        var template  = "views/project.ejs";
+                        var err       = null;
+                        var msg       = "Project Registered Successfully!";
+                        var params    = {project: project, auth_lvl: req.session.auth_lvl, uid: req.session.uid};
+
+                    }
+                    responseDispatcher(req, res, template, err, msg, params);
+                });
+
             }
         });
 });
 
-/** ******************************************************************************************
- *          PROJECT DONATE GET POST
- *  *******************************************************************************************/
-/* GET donate project */
-router.get("/project/:id/donate", function(req, res) {
-    ejs.renderFile(path.join(__basedir, "views/donation-form.ejs"), {projectId: req.params.id, err: null},  function(e, body) {
-        var response = {
-            err: null,
-            auth_lvl: req.session.auth_lvl,
-            username: req.session.username,
-            header: "Afeka KickStarter",
-            data: body
-        };
-
-        res.send(JSON.stringify(response));
-    });
-});
-
 /* POST donate project */
-router.post("/project/:id/donate", function(req, res) {
+router.post("/projects/:id/donate", function(req, res) {
   bl_inst.addDonation(req.params.id, req.session.username, req.body.credit_card, 1111, req.body.sum, function(err, donationId) {
       if(err) {
-          ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Something went wrong"}, function(e, body) {
-              var response = {
-                  err: null,
-                  auth_lvl: req.session.auth_lvl,
-                  username: req.session.username,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
+          logger.err(TAG, err);
 
-              res.send(JSON.stringify(response));
-          });
-      }
-      else {
-          ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Successful Donation!"},  function(e, body) {
-              console.log(e);
-              var response = {
-                  err: null,
-                  auth_lvl: req.session.auth_lvl,
-                  username: req.session.username,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
-
-              res.send(JSON.stringify(response));
+          var template  = "views/donation-form.ejs";
+          var err       = "Something went wrong, please try again";
+          var msg       = null;
+          var params    = {projectId: req.params.id};
+          responseDispatcher(req, res, template, err, msg, params);
+      } else {
+          bl_inst.getProjectLogicInterface().getProjectById(req.params.id, function (i_err, project) {
+              if (i_err) {
+                  var template = "views/generic-message.ejs";
+                  var err = null;
+                  var msg = "Donation Processed Successfully!";
+                  var params = null;
+              } else {
+                  var template = "views/project.ejs";
+                  var err = null;
+                  var msg = "Donation Processed Successfully!";
+                  var params = {project: project, auth_lvl: req.session.auth_lvl, uid: req.session.uid};
+              }
+              responseDispatcher(req, res, template, err, msg, params);
           });
       }
   });
 });
 
 /** ******************************************************************************************
- *          SIGN UP GET POST
+ *          USER ROUTES
  *  *******************************************************************************************/
 /* POST sign up form */
-router.get("/signup", function(req, res) {
-    ejs.renderFile(path.join(__basedir, "views/signup-form.ejs"), {err: null}, function(e, body) {
+router.get("/users/signup", function(req, res) {
+    var template  = "views/signup-form.ejs";
+    var err       = null;
+    var msg       = null;
+    var params    = null;
 
-        var response = {
-            err: null,
-            auth_lvl: req.session.auth_lvl,
-            username: req.session.username,
-            header: "Afeka KickStarter",
-            data: body
-        };
-
-        res.send(JSON.stringify(response));
-    });
+    responseDispatcher(req, res, template, err, msg, params);
 });
 
 /* POST sign up form */
-router.post("/signup", function(req, res) {
+router.post("/users/signup", function(req, res) {
     bl_inst.getUserLogicInterface().createAccount(req.body.username, req.body.password, req.body.type, function(err, userId, username, auth_lvl) {
         if(err) {
-            ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Something went wrong"}, function(e, body) {
-                var response = {
-                    err: null,
-                    auth_lvl: req.session.auth_lvl,
-                    username: req.session.username,
-                    header: "Afeka KickStarter",
-                    data: body
-                };
+            logger.err(TAG, err);
 
-                res.send(JSON.stringify(response));
-            });
-        }
-        else {
+            var template  = "views/signup-form.ejs";
+            var err       = "Something went wrong, please try again";
+            var msg       = null;
+            var params    = null;
+
+            responseDispatcher(req, res, template, err, msg, params);
+        } else {
+            logger.info(username);
+            logger.info(auth_lvl);
             req.session.username = username;
             req.session.auth_lvl = auth_lvl;
 
-            ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Successfully Signed Up!"}, function(e, body) {
+            bl_inst.getProjectLogicInterface().getAllActiveProjects(function(i_err, projects) {
+               if(i_err) {
+                   logger.err(TAG, i_err);
 
-                var response = {
-                    err: null,
-                    auth_lvl: req.session.auth_lvl,
-                    username: req.session.username,
-                    header: "Afeka KickStarter",
-                    data: body
-                };
+                   var template = "views/generic-message.ejs";
+                   var err = null;
+                   var msg = "Account Created Successfully!";
+                   var params = null;
+               } else {
+                   var template  = "views/projects.ejs";
+                   var err       = null;
+                   var msg       = "Account Created Successfully";
+                   var params    = {projects: projects};
+               }
+                responseDispatcher(req, res, template, err, msg, params);
+            });
 
-                res.send(JSON.stringify(response));
+
+
+        }
+    });
+});
+
+/* GET login form */
+router.get("/users/login", function(req, res) {
+    var template  = "views/login-form.ejs";
+    var err       = null;
+    var msg       = null;
+    var params    = null;
+
+    responseDispatcher(req, res, template, err, msg, params);
+});
+
+/* POST login form */
+router.post("/users/login", function(req, res) {
+    bl_inst.getUserLogicInterface().authenticate(req.body.username, req.body.password, function(err, userId, auth_lvl) {
+        if(err) {
+            logger.err(TAG, err);
+
+            var template  = "views/login-form.ejs";
+            var err       = "Something went wrong, please try again";
+            var msg       = null;
+            var params    = null;
+
+            responseDispatcher(req, res, template, err, msg, params);
+        } else {
+            req.session.username    = req.body.username;
+            req.session.auth_lvl    = auth_lvl;
+            req.session.uid         = userId;
+
+            bl_inst.getProjectLogicInterface().getAllActiveProjects(function(i_err, projects) {
+                if(i_err) {
+                    logger.err(TAG, i_err);
+
+                    var template = "views/generic-message.ejs";
+                    var err = null;
+                    var msg = "Logged In Successfully!";
+                    var params = null;
+                } else {
+                    var template  = "views/projects.ejs";
+                    var err       = null;
+                    var msg       = "Account Created Successfully";
+                    var params    = {projects: projects};
+                }
+                responseDispatcher(req, res, template, err, msg, params);
             });
         }
     });
 });
 
-/** ******************************************************************************************
- *          LOGIN GET POST
- *  *******************************************************************************************/
-/* GET login form */
-router.get("/login", function(req, res) {
-    ejs.renderFile(path.join(__basedir, "views/login-form.ejs"), {err: null}, function(e, body) {
-
-        var response = {
-            err: null,
-            auth_lvl: req.session.auth_lvl,
-            username: req.session.username,
-            header: "Afeka KickStarter",
-            data: body
-        };
-
-        res.send(JSON.stringify(response));
-    });
-});
-
-/* POST login form */
-router.post("/login", function(req, res) {
-    bl_inst.getUserLogicInterface().authenticate(req.body.username, req.body.password, function(err, userId, auth_lvl) {
-      if(err) {
-          ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Something went wrong"}, function(e, body) {
-              var response = {
-                  err: null,
-                  auth_lvl: req.session.auth_lvl,
-                  username: req.session.username,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
-
-              res.send(JSON.stringify(response));
-          });
-      }
-      else if(auth_lvl == -1) {
-
-          ejs.renderFile(path.join(__basedir, "views/login-form.ejs"), {err: "Wrong Username or Password"}, function(e, body) {
-
-              var response = {
-                  err: null,
-                  auth_lvl: -1,
-                  username: null,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
-
-              res.send(JSON.stringify(response));
-          });
-      }
-      else {
-          req.session.auth_lvl = auth_lvl;
-          req.session.username = req.body.username;
-          ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {msg: "Successful Login!"}, function(e, body) {
-
-              var response = {
-                  err: null,
-                  auth_lvl: req.session.auth_lvl,
-                  username: req.session.username,
-                  header: "Afeka KickStarter",
-                  data: body
-              };
-
-              res.send(JSON.stringify(response));
-          });
-      }
-    });
-});
-
-
-/** ******************************************************************************************
- *          LOGOUT GET
- *  *******************************************************************************************/
 /* GET logout */
-router.get("/logout", function(req, res) {
-  if(req.session.username && req.session.auth_lvl > 0)
-    req.session.username = null;
-    req.session.auth_lvl = -1;
+router.get("/users/logout", function(req, res) {
+    var loggedin_modified = false;
 
-    ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: "Wrong Username or Password"}, function(e, body) {
+    if(req.session.username && req.session.auth_lvl > 0) {
+        req.session.username    = null;
+        req.session.auth_lvl    = -1;
+        req.session.uid         = null;
+        loggedin_modified = true;
+    }
+    bl_inst.getProjectLogicInterface().getAllActiveProjects(function(i_err, projects) {
+        if(i_err) {
+            logger.err(TAG, i_err);
 
-        var response = {
-            err: null,
-            auth_lvl: req.session.auth_lvl,
-            username: req.session.username,
-            header: "Afeka KickStarter",
-            data: body
-        };
-
-        res.send(JSON.stringify(response));
+            var template = "views/generic-message.ejs";
+            var err = null;
+            var msg = loggedin_modified ? "Logged Out Successfully!" : "You are not logged in!";
+            var params = null;
+        } else {
+            var template  = "views/projects.ejs";
+            var err       = null;
+            var msg       = loggedin_modified ? "Logged Out Successfully!" : "You are not logged in!";
+            var params    = {projects: projects};
+        }
+        responseDispatcher(req, res, template, err, msg, params);
     });
+
 });
 
-/** ******************************************************************************************
- *          USER LIST GET
- *  *******************************************************************************************/
 /* GET user list */
-router.get("/userlist", function(req, res) {
-    if(req.session.username == "admin" && req.session.auth_lvl == 1) {
-        bl_inst.getUserLogicInterface().getUsers(function(err, users) {
-           if(err) {
-               ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Something went wrong"}, function(e, body) {
-                   var response = {
-                       err: null,
-                       auth_lvl: req.session.auth_lvl,
-                       username: req.session.username,
-                       header: "Afeka KickStarter",
-                       data: body
-                   };
+router.get("/users", function(req, res) {
+    if(!bl_inst.getUserLogicInterface().isAdmin(req.session.auth_lvl)) {
+        var template  = "views/generic-message.ejs";
+        var err       = null;
+        var msg       = "Unauthorized";
+        var params    = null;
 
-                   res.send(JSON.stringify(response));
-               });
-           } else {
-               console.log("2");
-               ejs.renderFile(path.join(__basedir, "views/userlist.ejs"), {err: null, users: users}, function(e, body) {
-                   var response = {
-                       err: null,
-                       auth_lvl: req.session.auth_lvl,
-                       username: req.session.username,
-                       header: "Afeka KickStarter",
-                       data: body
-                   };
+        responseDispatcher(req, res, template, err, msg, params);
 
-                   res.send(JSON.stringify(response));
-               });
-           }
-        });
     } else {
-        ejs.renderFile(path.join(__basedir, "views/generic-message.ejs"), {err: null, msg: "Unauthorized"}, function(e, body) {
-            var response = {
-                err: null,
-                auth_lvl: req.session.auth_lvl,
-                username: req.session.username,
-                header: "Afeka KickStarter",
-                data: body
-            };
+        bl_inst.getUserLogicInterface().getUsers(function(err, users) {
+            if(err) {
+                var template  = "views/generic-message.ejs";
+                var err       = null;
+                var msg       = "Something went wrong";
+                var params    = null;
 
-            res.send(JSON.stringify(response));
+                responseDispatcher(req, res, template, err, msg, params);
+
+            } else {
+                var template  = "views/userlist.ejs";
+                var err       = null;
+                var msg       = null;
+                var params    = {users: users};
+
+                responseDispatcher(req, res, template, err, msg, params);
+            }
         });
     }
 });

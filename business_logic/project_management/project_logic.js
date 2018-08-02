@@ -1,6 +1,7 @@
 var path                    = require('path');
 var logger                  = require(path.join(__basedir, "common/logger/logger"));
 var db_interface            = require(path.join(__basedir, "dal/db_interface"));
+var project_logic_utils     = require("./project_logic_utils");
 
 var TAG = "ProjectLogic"
 
@@ -17,7 +18,6 @@ var global_db = new db_interface.DB(); // Ugly fix for out of scope issue
 class ProjectLogic {
     constructor() {
         this.db = new db_interface.DB();
-
     }
 
     /** Add new project.
@@ -81,9 +81,28 @@ class ProjectLogic {
                logger.err(TAG, err);
                cb(PROJECTLOGICERROR[1], null);
            } else {
-               logger.info(TAG, projects.length);
                cb(null, projects);
            }
+        });
+    }
+
+    /** Get All Active Projects.
+     * Params: callback.
+     * Callback(String error, object[] projects) */
+    getAllActiveProjects(cb) {
+        this.db.readAllProjects(function(err, projects) {
+            if(err) {
+                logger.err(TAG, err);
+                cb(PROJECTLOGICERROR[1], null);
+            } else {
+                var activeProjects = [];
+                projects.forEach(function(project) {
+                    if(!project_logic_utils.isExpired(project.targetSum, project.currentSum, project.targetDate)) {
+                        activeProjects.push(project);
+                    }
+                });
+                cb(null, activeProjects);
+            }
         });
     }
 
@@ -91,13 +110,14 @@ class ProjectLogic {
      * Params: callback.
      * Callback(String error, object[] projects) */
     getAllKickedOutProject(cb) {
-        this.db.readProjectsByName("", function(err, projects) {
+        this.db.readAllProjects(function(err, projects) {
             if(err) {
+                logger.err(TAG, err);
                 cb(PROJECTLOGICERROR[1], null);
             } else {
                 var kickedOutProjects = [];
                 projects.forEach(function(project) {
-                   if(project.currentSum >= project.targetSum && project.targetDate >= Date.now()) {
+                   if(project_logic_utils.isKickedOut(project.targetSum, project.currentSum, project.targetDate)) {
                        kickedOutProjects.push(project);
                    }
                 });
@@ -112,6 +132,7 @@ class ProjectLogic {
     getAllActiveKickedOutProjects(cb) {
         this.db.readProjectsByName("", function(err, projects) {
             if(err) {
+                logger.err(TAG, err);
                 cb(PROJECTLOGICERROR[1], null);
             } else {
                 var activeKickedOutProjects = [];
@@ -129,13 +150,15 @@ class ProjectLogic {
      * Params: String projectId, callback.
      * Callback(String error, Object project) */
     getProjectById(projectId, cb) {
-        if(!projectId)
+        if(!projectId) {
+            logger.err(TAG, "argument error");
             cb(PROJECTLOGICERROR[1], null);
-        else {
+        } else {
             this.db.readProjectById(projectId, function(err, project) {
-               if(err)
+               if(err) {
+                   logger.err(TAG, err);
                    cb(PROJECTLOGICERROR[1], null);
-               else {
+               } else {
                    cb(null, project);
                }
             });
@@ -146,55 +169,18 @@ class ProjectLogic {
      * Params: String userId, callback.
      * Callback(String error, Object[] projects) */
     getProjectsByOwner(userId, cb) {
-        if(!userId)
+        if(!userId) {
+            logger.err(TAG, "argument error");
             cb(PROJECTLOGICERROR[1], null);
-        else {
-            this.db.getProjectsByOwner(userId, function(err, projects) {
-                if(err)
+        } else {
+            this.db.readProjectsByUserId(userId, function(err, projects) {
+                if(err) {
                     cb(PROJECTLOGICERROR[1], null);
-                else {
+                    logger.err(TAG, err);
+                } else {
                     cb(null, projects);
                 }
             });
-        }
-    }
-
-    /** Check project status (Is Kicked Out)
-     * Params: Number targetSum, Number currentSum, Date targetDate, callback.
-     * Callback(String error, Boolean isKickedOut) */
-    isKickedOut(targetSum, currentSum, targetDate, cb) {
-        if(!targetSum || !currentSum || !targetDate)
-            cb(PROJECTLOGICERROR[1], null);
-        else if(targetSum <= currentSum && targetDate <= Date.now()) {
-            cb(null, true);
-        } else {
-            cb(null, false);
-        }
-    }
-
-    /** Check Project Status (Is Expired)
-     * Params: Number targetSum, Number currentSum, Date targetDate, callback.
-     * Callback(String error, Boolean isExpired) */
-    isExpired(targetSum, currentSum, targetDate, cb) {
-        if(!targetSum || !currentSum || !targetDate)
-            cb(PROJECTLOGICERROR[1], null);
-        else if(targetSum > currentSum && targetDate <= Date.now()) {
-            cb(null, true);
-        } else {
-            cb(null, false);
-        }
-    }
-
-    /** Check Project Status (Is Goal Reached and Still Active)
-     * Params: Number targetSum, Number currentSum, Date targetDate, callback.
-     * Callback(String error, Boolean isGoalReachedAndActive) */
-    isGoalReached(targetSum, currentSum, targetDate, cb) {
-        if(!targetSum || !currentSum || !targetDate)
-            cb(PROJECTLOGICERROR[1], null);
-        else if(targetSum <= currentSum && targetDate > Date.now()) {
-            cb(null, true);
-        } else {
-            cb(null, false);
         }
     }
 
@@ -202,18 +188,21 @@ class ProjectLogic {
      * Params: String id, Number sum, callback
      * Callback(String error, String projectId */
     addDonation(projectId, sum, cb) {
-        if(!projectId || !sum || sum <= 0)
+        if(!projectId || !sum || sum <= 0) {
+            logger.err(TAG, "argument error");
             cb(PROJECTLOGICERROR[1], null);
-        else {
+        } else {
             this.db.readProjectById(projectId, function(err, project) {
-                if(err)
+                if(err) {
+                    logger.err(TAG, err);
                     cb(PROJECTLOGICERROR[1], null);
-                else {
-                    project.currentSum += sum;
+                } else {
+                    project.currentSum = parseInt(project.currentSum) + parseInt(sum);
                     global_db.updateProject(project, function(i_err, i_project) {
-                        if(i_err)
+                        if(i_err) {
+                            logger.err(TAG, err);
                             cb(PROJECTLOGICERROR[1], null);
-                        else {
+                        } else {
                             cb(null, i_project._id);
                         }
                     });
@@ -221,6 +210,34 @@ class ProjectLogic {
             });
         }
     }
+
+    updateProject(id, name, description, images, video, targetSum, targetDate, bankAccount, cb) {
+        this.db.readProjectById(id, function (err, project) {
+            if (err) {
+            } else {
+                project.name        = project.name          == name         ? project.name          : name;
+                project.description = project.description   == description  ? project.description   : description;
+                project.images[0]   = project.images[0]     == images[0]    ? project.images[0]     : images[0];
+                project.images[1]   = project.images[1]     == images[1]    ? project.images[1]     : images[1];
+                project.images[2]   = project.images[2]     == images[2]    ? project.images[2]     : images[2];
+                project.video       = project.video         == video        ? project.video         : video;
+                project.targetSum   = project.targetSum;
+                project.targetDate  = project.targetDate;
+                project.bankAccount = project.bankAccount   == bankAccount  ? project.bankAccount   : bankAccount;
+                global_db.updateProject(project, function(err, updatedProject) {
+                    if(err) {
+
+                    } else {
+                        cb(null, updatedProject);
+                    }
+                });
+            }
+        });
+    }
+
+
+
+
 }
 
 module.exports = {

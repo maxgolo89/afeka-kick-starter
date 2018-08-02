@@ -8,8 +8,8 @@ a {
 }
 
 .main-page {
-  border-right: 1px solid black;
-  border-left: 1px solid black;
+  /*border-right: 1px solid black;*/
+  /*border-left: 1px solid black;*/
 }
 
 .header {
@@ -22,4 +22,17 @@ a {
 
 .jumbotron {
   color: #2c3e50;
+}
+
+.row.display-flex {
+  display: flex;
+  flex-wrap: wrap;
+}
+.row.display-flex > [class*='col-'] {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  height: 100%;
 }

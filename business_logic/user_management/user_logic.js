@@ -77,7 +77,7 @@ class UserLogic {
             };
             this.db.createUser(newUser, function(err, user) {
                 if(err == null) {
-                    cb(null, user._id, user.username, user_logic_utils.resolveUserAuthLvl(user.type));
+                    cb(null, user._id, user.username, user_logic_utils.resolveUserAuthLvl(user));
                 } else {
                     switch(err) {
                         case db_interface.ERR[1]:
